@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oplevertool</title>
+
+  <!-- PWA basics -->
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial; margin: 16px; background:#fafafa; color:#111; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    fieldset { border: 1px solid #ddd; border-radius: 14px; padding: 12px; margin: 12px 0; background:#fff; }
+    legend { padding: 0 8px; color: #333; }
+    label { display:block; font-size: 13px; margin-top: 10px; color:#222; }
+    input, select, textarea { width: 100%; padding: 10px; border:1px solid #ccc; border-radius:12px; font-size: 14px; background:#fff; }
+    textarea { min-height: 84px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .btnbar { display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0; }
+    button { padding: 10px 14px; border-radius: 12px; border:1px solid #ccc; background:#fff; font-size: 14px; cursor:pointer; }
+    button.primary { background:#111; color:#fff; border-color:#111; }
+    button.danger { border-color:#d33; color:#d33; }
+    .photos { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .card { border:1px solid #ddd; border-radius: 14px; padding: 10px; background:#fff; }
+    .thumb { width:100%; border-radius: 12px; display:block; }
+    canvas { width: 100%; height: 160px; border:1px dashed #aaa; border-radius: 12px; background:#fff; }
+    small { color:#666; }
+    .status { font-size: 13px; color:#333; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #ddd; background:#fff; }
+    .muted { color:#666; }
+  </style>
+
+  <!-- PDF library -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+  <h1>Opleverformulier (professionele versie)</h1>
+  <div class="status">
+    <span class="pill">PDF + e-mail met bijlage</span>
+    <span class="pill muted">3 handtekeningen (optioneel)</span>
+  </div>
+
+  <fieldset>
+    <legend>Instellingen</legend>
+    <label>Backend URL (waar jouw mail-server draait)</label>
+    <input id="apiBase" placeholder="Bijv. http://localhost:3000" />
+    <small>Tip: lokaal = <b>http://localhost:3000</b>. Online = jouw Render/Railway URL.</small>
+
+    <label>API sleutel</label>
+    <input id="apiKey" placeholder="Zelfde waarde als API_KEY in .env" />
+    <small>Dit voorkomt dat iedereen via jouw server mails kan versturen.</small>
+  </fieldset>
+
+  <fieldset>
+    <legend>Object</legend>
+    <div class="row">
+      <div>
+        <label>Type</label>
+        <select id="type">
+          <option>Winkelruimte</option>
+          <option>Kantoorruimte</option>
+          <option>Bedrijfsruimte</option>
+          <option>Overig</option>
+        </select>
+      </div>
+      <div>
+        <label>Datum</label>
+        <input id="datum" type="date" />
+      </div>
+    </div>
+
+    <label>Adres</label>
+    <input id="adres" placeholder="Straat + nr, postcode, plaats" />
+
+    <label>Omschrijving / unit</label>
+    <input id="unit" placeholder="Bijv. begane grond, unit A, etc." />
+
+    <div class="row">
+      <div>
+        <label>Plaats (ondertekening)</label>
+        <input id="plaats" placeholder="Maastricht" />
+      </div>
+      <div>
+        <label>Referentie (optioneel)</label>
+        <input id="ref" placeholder="Bijv. dossiernummer, contractnr, etc." />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Partijen (voor e-mail)</legend>
+
+    <div class="row3">
+      <div>
+        <label>Verhuurder (naam)</label>
+        <input id="p1_naam" />
+        <label>Verhuurder (e-mail)</label>
+        <input id="p1_email" type="email" />
+      </div>
+
+      <div>
+        <label>Nieuwe huurder (naam)</label>
+        <input id="p2_naam" />
+        <label>Nieuwe huurder (e-mail)</label>
+        <input id="p2_email" type="email" />
+      </div>
+
+      <div>
+        <label>Vertrekkende huurder (naam) — optioneel</label>
+        <input id="p3_naam" />
+        <label>Vertrekkende huurder (e-mail) — optioneel</label>
+        <input id="p3_email" type="email" />
+      </div>
+    </div>
+
+    <label>Derden (CC) – komma-gescheiden</label>
+    <input id="cc_emails" placeholder="bijv. beheer@..., makelaar@..." />
+  </fieldset>
+
+  <fieldset>
+    <legend>Meterstanden</legend>
+
+    <div class="row">
+      <div>
+        <label>Elektra I (kWh)</label>
+        <input id="m_elektra1" inputmode="decimal" />
+      </div>
+      <div>
+        <label>Elektra II (kWh)</label>
+        <input id="m_elektra2" inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Gas (m³)</label>
+        <input id="m_gas" inputmode="decimal" />
+      </div>
+      <div>
+        <label>Water (m³)</label>
+        <input id="m_water" inputmode="decimal" />
+      </div>
+    </div>
+
+    <label>Overige meters / opmerkingen</label>
+    <textarea id="m_opm" placeholder="Bijv. dag-/nachtstand, warmtemeter, serienummers, etc."></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Opleverpunten</legend>
+    <label>Checklist (één per regel)</label>
+    <textarea id="checklist">Sleutels (aantal en type) genoteerd en ontvangen
+Meterstanden opgenomen en vastgelegd
+Wanden/plafonds/vloeren: staat gecontroleerd
+Sanitair/pantry: staat gecontroleerd
+Installaties (CV/airco/ventilatie): staat gecontroleerd
+Verlichting/elektra: schakelaars/stopcontacten gecontroleerd
+Brandveiligheid: middelen/voorzieningen aanwezig (indien van toepassing)
+Ramen/deuren/sloten: werking gecontroleerd
+Schades en herstelpunten vastgelegd
+Schoon en ontruimd opgeleverd
+Afval/resten verwijderd
+Overige afspraken en bijzonderheden vastgelegd</textarea>
+
+    <label>Algemene opmerkingen</label>
+    <textarea id="opm"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Foto’s</legend>
+    <label>Foto toevoegen (camera of fotoalbum)</label>
+    <!-- iPhone: zonder capture => Fotoalbum + Camera keuze -->
+    <input id="photoInput" type="file" accept="image/*" multiple />
+    <small>Foto’s worden automatisch verkleind (sneller + betere e-mail afleverbaarheid).</small>
+    <div id="photos" class="photos"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Handtekeningen (3x, 3e is optioneel)</legend>
+
+    <div class="row3">
+      <div class="card">
+        <strong>Verhuurder</strong>
+        <canvas id="sig1"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig(1)">Wis</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Nieuwe huurder</strong>
+        <canvas id="sig2"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig(2)">Wis</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Vertrekkende huurder (optioneel)</strong>
+        <canvas id="sig3"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig(3)">Wis</button>
+        </div>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="btnbar">
+    <button class="primary" type="button" onclick="downloadPdf()">Genereer & download PDF</button>
+    <button class="primary" type="button" onclick="sendPdfEmail()">Genereer & e-mail PDF</button>
+    <button class="danger" type="button" onclick="resetForm()">Reset</button>
+    <button type="button" onclick="downloadJson()">Opslaan (JSON backup)</button>
+    <input id="loadJson" type="file" accept="application/json" />
+  </div>
+
+  <div id="msg" class="status"></div>
+
+  <script>
+    // ---------- helpers ----------
+    const $ = (id) => document.getElementById(id);
+    const msg = (t) => { $("msg").textContent = t; };
+
+    function todayISO() {
+      const d = new Date();
+      const tz = d.getTimezoneOffset() * 60000;
+      return new Date(d - tz).toISOString().slice(0,10);
+    }
+    $("datum").value = todayISO();
+
+    // defaults
+    $("apiBase").value = "http://localhost:3000";
+
+    // ---------- photos with resizing ----------
+    const photoState = []; // {dataUrl, caption}
+    $("photoInput").addEventListener("change", async (e) => {
+      const files = [...e.target.files || []];
+      for (const f of files) {
+        const resized = await resizeImageFileToJpegDataUrl(f, 1600, 0.82);
+        photoState.push({ dataUrl: resized, caption: "" });
+      }
+      renderPhotos();
+      e.target.value = "";
+    });
+
+    function renderPhotos() {
+      const wrap = $("photos");
+      wrap.innerHTML = "";
+      photoState.forEach((p, idx) => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <img class="thumb" src="${p.dataUrl}" />
+          <label>Bijschrift</label>
+          <input value="${escapeHtml(p.caption)}" />
+          <div class="btnbar">
+            <button type="button">Verwijder</button>
+          </div>
+        `;
+        div.querySelector("input").addEventListener("input", (ev) => photoState[idx].caption = ev.target.value);
+        div.querySelector("button").addEventListener("click", () => { photoState.splice(idx, 1); renderPhotos(); });
+        wrap.appendChild(div);
+      });
+    }
+
+    function escapeHtml(s) {
+      return (s || "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    async function resizeImageFileToJpegDataUrl(file, maxDim, quality) {
+      // createImageBitmap works well on modern Safari/iOS; fallback to FileReader if needed.
+      const bmp = await createImageBitmap(file);
+      const { width, height } = bmp;
+      const scale = Math.min(1, maxDim / Math.max(width, height));
+      const w = Math.round(width * scale);
+      const h = Math.round(height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bmp, 0, 0, w, h);
+
+      return canvas.toDataURL("image/jpeg", quality);
+    }
+
+    // ---------- signatures (Pointer Events for iPhone touch) ----------
+    function setupSignatureCanvas(id) {
+      const canvas = $(id);
+      const ctx = canvas.getContext("2d");
+
+      canvas.style.touchAction = "none"; // critical on iPhone
+
+      function resize() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * ratio);
+        canvas.height = Math.floor(rect.height * ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      let drawing = false;
+
+      function getPos(ev) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ev.clientX - rect.left;
+        const y = ev.clientY - rect.top;
+        return { x, y };
+      }
+
+      canvas.addEventListener("pointerdown", (ev) => {
+        ev.preventDefault();
+        canvas.setPointerCapture(ev.pointerId);
+        drawing = true;
+        const p = getPos(ev);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      });
+
+      canvas.addEventListener("pointermove", (ev) => {
+        if (!drawing) return;
+        ev.preventDefault();
+        const p = getPos(ev);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      });
+
+      function end(ev) {
+        if (!drawing) return;
+        ev.preventDefault();
+        drawing = false;
+      }
+
+      canvas.addEventListener("pointerup", end);
+      canvas.addEventListener("pointercancel", end);
+      canvas.addEventListener("pointerout", end);
+
+      return {
+        clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height),
+        toDataURL: () => canvas.toDataURL("image/png")
+      };
+    }
+
+    const sig1 = setupSignatureCanvas("sig1");
+    const sig2 = setupSignatureCanvas("sig2");
+    const sig3 = setupSignatureCanvas("sig3");
+
+    function clearSig(n) {
+      if (n === 1) sig1.clear();
+      if (n === 2) sig2.clear();
+      if (n === 3) sig3.clear();
+    }
+
+    function resetForm() {
+      if (!confirm("Alles wissen?")) return;
+      document.querySelectorAll("input, textarea").forEach(el => {
+        if (el.id === "apiBase") return;
+        if (el.id === "datum") { el.value = todayISO(); return; }
+        el.value = "";
+      });
+      $("type").value = "Winkelruimte";
+      photoState.length = 0;
+      renderPhotos();
+      sig1.clear(); sig2.clear(); sig3.clear();
+      msg("");
+    }
+
+    // ---------- data ----------
+    function hasVertrekkend(data) {
+      return Boolean(
+        (data.partijen?.vertrekkendeHuurder?.naam || "").trim() ||
+        (data.partijen?.vertrekkendeHuurder?.email || "").trim()
+      );
+    }
+
+    function collectData() {
+      return {
+        meta: {
+          createdAt: new Date().toISOString(),
+          ref: $("ref").value
+        },
+        object: {
+          type: $("type").value,
+          datum: $("datum").value,
+          adres: $("adres").value,
+          unit: $("unit").value,
+          plaats: $("plaats").value
+        },
+        partijen: {
+          verhuurder: { naam: $("p1_naam").value, email: $("p1_email").value },
+          nieuweHuurder: { naam: $("p2_naam").value, email: $("p2_email").value },
+          vertrekkendeHuurder: { naam: $("p3_naam").value, email: $("p3_email").value },
+          cc: $("cc_emails").value
+        },
+        meters: {
+          elektra1: $("m_elektra1").value,
+          elektra2: $("m_elektra2").value,
+          gas: $("m_gas").value,
+          water: $("m_water").value,
+          opm: $("m_opm").value
+        },
+        checklist: $("checklist").value.split("\n").map(s => s.trim()).filter(Boolean),
+        opmerkingen: $("opm").value,
+        photos: [...photoState],
+        signatures: {
+          verhuurder: sig1.toDataURL(),
+          nieuweHuurder: sig2.toDataURL(),
+          vertrekkendeHuurder: sig3.toDataURL()
+        }
+      };
+    }
+
+    function buildFilename(data) {
+      const a = (data.object.adres || "object").replace(/[^a-z0-9]+/gi,"_");
+      const d = data.object.datum || "";
+      const r = (data.meta.ref || "").replace(/[^a-z0-9]+/gi,"_");
+      return `Opleverrapport_${a}_${d}${r ? "_" + r : ""}.pdf`;
+    }
+
+    // ---------- PDF generation (download + base64 for email) ----------
+    async function makePdf(data) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+      const margin = 40;
+      const pageW = 595.28; // A4 pt
+      const pageH = 841.89;
+      const contentW = pageW - margin*2;
+
+      let y = margin;
+
+      function newPageIfNeeded(extra=0) {
+        if (y + extra > pageH - margin) {
+          doc.addPage();
+          y = margin;
+        }
+      }
+
+      function h1(t) {
+        doc.setFont("helvetica","bold"); doc.setFontSize(16);
+        doc.text(t, margin, y);
+        y += 18;
+        doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      }
+
+      function hr() {
+        doc.setDrawColor(200);
+        doc.line(margin, y, pageW - margin, y);
+        y += 14;
+      }
+
+      function line(label, value) {
+        const v = String(value || "-");
+        doc.setFont("helvetica","bold"); doc.text(label, margin, y);
+        doc.setFont("helvetica","normal"); doc.text(v, margin + 160, y);
+        y += 16;
+      }
+
+      function block(label, value) {
+        doc.setFont("helvetica","bold"); doc.text(label, margin, y);
+        y += 14;
+        doc.setFont("helvetica","normal");
+        const txt = String(value || "-");
+        const lines = doc.splitTextToSize(txt, contentW);
+        doc.text(lines, margin, y);
+        y += lines.length * 14 + 6;
+      }
+
+      async function getImageDims(dataUrl) {
+        const img = new Image();
+        await new Promise((res) => { img.onload = res; img.src = dataUrl; });
+        return { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+      }
+
+      // --- Header ---
+      h1("Opleverrapport");
+      if (data.meta.ref) line("Referentie", data.meta.ref);
+      line("Type", data.object.type);
+      line("Datum", data.object.datum);
+      line("Adres", data.object.adres);
+      line("Omschrijving", data.object.unit);
+      hr();
+
+      // --- Partijen ---
+      const hasV = hasVertrekkend(data);
+
+      doc.setFont("helvetica","bold"); doc.text("Partijen", margin, y); y += 16;
+      doc.setFont("helvetica","normal");
+      line("Verhuurder", `${data.partijen.verhuurder.naam || "-"} (${data.partijen.verhuurder.email || "-"})`);
+      line("Nieuwe huurder", `${data.partijen.nieuweHuurder.naam || "-"} (${data.partijen.nieuweHuurder.email || "-"})`);
+      if (hasV) {
+        line("Vertrekkende huurder", `${data.partijen.vertrekkendeHuurder.naam || "-"} (${data.partijen.vertrekkendeHuurder.email || "-"})`);
+      }
+      line("CC", data.partijen.cc);
+      hr();
+
+      // --- Meterstanden ---
+      doc.setFont("helvetica","bold"); doc.text("Meterstanden", margin, y); y += 16;
+      doc.setFont("helvetica","normal");
+      line("Elektra I", data.meters.elektra1);
+      line("Elektra II", data.meters.elektra2);
+      line("Gas", data.meters.gas);
+      line("Water", data.meters.water);
+      block("Overige meters / opmerkingen", data.meters.opm);
+      hr();
+
+      // --- Checklist ---
+      doc.setFont("helvetica","bold"); doc.text("Checklist", margin, y); y += 16;
+      doc.setFont("helvetica","normal");
+      data.checklist.forEach(item => {
+        newPageIfNeeded(24);
+        const lines = doc.splitTextToSize(`• ${item}`, contentW);
+        doc.text(lines, margin, y);
+        y += lines.length * 14;
+      });
+      y += 6;
+
+      block("Algemene opmerkingen", data.opmerkingen);
+      hr();
+
+      // --- Photos (2 per row, keep aspect ratio) ---
+      if (data.photos.length) {
+        doc.setFont("helvetica","bold"); doc.text("Foto’s", margin, y); y += 16;
+        doc.setFont("helvetica","normal");
+
+        const gap = 12;
+        const colW = (contentW - gap) / 2;
+        const maxImgH = 220;
+
+        let col = 0;       // 0 left, 1 right
+        let rowY = y;      // top of current row
+        let leftHeight = 0;
+
+        let i = 1;
+        for (const p of data.photos) {
+          // before starting a new row, ensure enough space
+          if (col === 0) {
+            newPageIfNeeded(maxImgH + 110);
+            rowY = y;
+          }
+
+          const x = margin + (col === 0 ? 0 : (colW + gap));
+
+          // Title
+          doc.setFont("helvetica","bold");
+          doc.text(`Foto ${i}`, x, rowY);
+          doc.setFont("helvetica","normal");
+
+          const imgY = rowY + 10;
+
+          // aspect fit
+          const dims = await getImageDims(p.dataUrl);
+          const scale = Math.min(colW / dims.w, maxImgH / dims.h);
+          const drawW = dims.w * scale;
+          const drawH = dims.h * scale;
+
+          doc.addImage(p.dataUrl, "JPEG", x, imgY, drawW, drawH, undefined, "FAST");
+
+          // caption
+          const cap = p.caption ? `Bijschrift: ${p.caption}` : "";
+          const capLines = doc.splitTextToSize(cap, colW);
+          const capY = imgY + drawH + 14;
+          if (capLines.length) doc.text(capLines, x, capY);
+
+          const itemHeight = (10 + drawH + 14 + (capLines.length * 14) + 16); // from rowY
+
+          if (col === 0) {
+            leftHeight = itemHeight;
+            col = 1;
+          } else {
+            const rightHeight = itemHeight;
+            const rowHeight = Math.max(leftHeight, rightHeight);
+            y = rowY + rowHeight + 10; // move below row
+            col = 0;
+            leftHeight = 0;
+          }
+
+          i++;
+        }
+
+        // if odd photo count: finalize last row height
+        if (col === 1) {
+          y = rowY + leftHeight + 10;
+        }
+
+        hr();
+      }
+
+      // --- Signatures ---
+      newPageIfNeeded(260);
+      doc.setFont("helvetica","bold"); doc.text("Ondertekening", margin, y); y += 16;
+      doc.setFont("helvetica","normal");
+      line("Plaats", data.object.plaats);
+      line("Datum", data.object.datum);
+
+      const gap = 12;
+      const cols = hasV ? 3 : 2;
+      const boxW = (contentW - gap * (cols - 1)) / cols;
+      const boxH = 70;
+      const sigTop = y + 8;
+
+      // labels
+      doc.setFont("helvetica","bold");
+      doc.text("Verhuurder", margin, sigTop);
+      doc.text("Nieuwe huurder", margin + (boxW + gap), sigTop);
+      if (hasV) doc.text("Vertrekkende huurder", margin + (boxW + gap) * 2, sigTop);
+
+      // images
+      doc.addImage(data.signatures.verhuurder, "PNG", margin, sigTop + 10, boxW, boxH, undefined, "FAST");
+      doc.addImage(data.signatures.nieuweHuurder, "PNG", margin + (boxW + gap), sigTop + 10, boxW, boxH, undefined, "FAST");
+      if (hasV) {
+        doc.addImage(data.signatures.vertrekkendeHuurder, "PNG", margin + (boxW + gap) * 2, sigTop + 10, boxW, boxH, undefined, "FAST");
+      }
+
+      // names
+      y = sigTop + 10 + boxH + 18;
+      doc.setFont("helvetica","normal");
+      doc.text(`Naam: ${data.partijen.verhuurder.naam || "-"}`, margin, y);
+      doc.text(`Naam: ${data.partijen.nieuweHuurder.naam || "-"}`, margin + (boxW + gap), y);
+      if (hasV) {
+        doc.text(`Naam: ${data.partijen.vertrekkendeHuurder.naam || "-"}`, margin + (boxW + gap) * 2, y);
+      }
+
+      // page numbers on all pages
+      const total = doc.getNumberOfPages();
+      for (let p = 1; p <= total; p++) {
+        doc.setPage(p);
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text(`Pagina ${p} / ${total}`, pageW - margin, pageH - 18, { align: "right" });
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+      }
+
+      return doc;
+    }
+
+    async function downloadPdf() {
+      try {
+        msg("PDF wordt gemaakt…");
+        const data = collectData();
+        const doc = await makePdf(data);
+        const filename = buildFilename(data);
+        doc.save(filename);
+        msg("PDF gedownload.");
+      } catch (e) {
+        msg("Fout bij PDF maken: " + (e?.message || e));
+      }
+    }
+
+    function parseEmails(s) {
+      return (s || "")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
+
+    async function sendPdfEmail() {
+      try {
+        msg("PDF wordt gemaakt en verstuurd…");
+
+        const apiBase = $("apiBase").value.trim().replace(/\/+$/,"");
+        const apiKey = $("apiKey").value.trim();
+
+        if (!apiBase) throw new Error("Vul Backend URL in.");
+        if (!apiKey) throw new Error("Vul API sleutel in.");
+
+        const data = collectData();
+        const doc = await makePdf(data);
+        const filename = buildFilename(data);
+
+        // convert to base64
+        const dataUri = doc.output("datauristring"); // data:application/pdf;base64,...
+        const pdfBase64 = dataUri.split(",")[1];
+
+        const hasV = hasVertrekkend(data);
+
+        const to = [
+          data.partijen.verhuurder.email,
+          data.partijen.nieuweHuurder.email,
+          ...(hasV ? [data.partijen.vertrekkendeHuurder.email] : [])
+        ].filter(Boolean);
+
+        if (to.length === 0) throw new Error("Geen ontvangers: vul minimaal 1 e-mailadres in bij partijen.");
+
+        const cc = parseEmails(data.partijen.cc);
+
+        const subject = `Opleverrapport – ${data.object.adres || "object"} – ${data.object.datum || ""}`;
+        const text =
+`Beste allen,
+
+In de bijlage treft u het opleverrapport aan.
+
+Object: ${data.object.adres || "-"}
+Datum: ${data.object.datum || "-"}
+Referentie: ${data.meta.ref || "-"}
+
+Met vriendelijke groet`;
+
+        const res = await fetch(`${apiBase}/send-report`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY": apiKey
+          },
+          body: JSON.stringify({
+            to,
+            cc,
+            subject,
+            text,
+            filename,
+            pdfBase64
+          })
+        });
+
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
+
+        msg("Verzonden ✅");
+      } catch (e) {
+        msg("Fout bij versturen: " + (e?.message || e));
+      }
+    }
+
+    // ---------- JSON backup ----------
+    function downloadJson() {
+      const data = collectData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `opleverrapport_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      msg("JSON backup gedownload.");
+    }
+
+    $("loadJson").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const txt = await file.text();
+      const data = JSON.parse(txt);
+
+      $("type").value = data.object?.type || "Winkelruimte";
+      $("datum").value = data.object?.datum || todayISO();
+      $("adres").value = data.object?.adres || "";
+      $("unit").value = data.object?.unit || "";
+      $("plaats").value = data.object?.plaats || "";
+      $("ref").value = data.meta?.ref || "";
+
+      $("p1_naam").value = data.partijen?.verhuurder?.naam || "";
+      $("p1_email").value = data.partijen?.verhuurder?.email || "";
+      $("p2_naam").value = data.partijen?.nieuweHuurder?.naam || "";
+      $("p2_email").value = data.partijen?.nieuweHuurder?.email || "";
+      $("p3_naam").value = data.partijen?.vertrekkendeHuurder?.naam || "";
+      $("p3_email").value = data.partijen?.vertrekkendeHuurder?.email || "";
+      $("cc_emails").value = data.partijen?.cc || "";
+
+      $("m_elektra1").value = data.meters?.elektra1 || "";
+      $("m_elektra2").value = data.meters?.elektra2 || "";
+      $("m_gas").value = data.meters?.gas || "";
+      $("m_water").value = data.meters?.water || "";
+      $("m_opm").value = data.meters?.opm || "";
+
+      $("checklist").value = (data.checklist || []).join("\n");
+      $("opm").value = data.opmerkingen || "";
+
+      // photos
+      photoState.length = 0;
+      (data.photos || []).forEach(p => photoState.push(p));
+      renderPhotos();
+
+      // signatures (render dataurl into canvases)
+      await drawDataUrlOnCanvas("sig1", data.signatures?.verhuurder);
+      await drawDataUrlOnCanvas("sig2", data.signatures?.nieuweHuurder);
+      await drawDataUrlOnCanvas("sig3", data.signatures?.vertrekkendeHuurder);
+
+      e.target.value = "";
+      msg("JSON ingeladen.");
+    });
+
+    async function drawDataUrlOnCanvas(canvasId, dataUrl) {
+      if (!dataUrl) return;
+      const canvas = $(canvasId);
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      await new Promise((res) => { img.onload = res; img.src = dataUrl; });
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    }
+  </script>
+</body>
+</html>
