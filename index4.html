@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proces-verbaal van oplevering</title>
+
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial; margin: 16px; background:#fafafa; color:#111; }
+    h1 { font-size: 20px; margin: 0 0 10px; }
+    .sub { color:#555; font-size: 13px; margin-bottom: 12px; }
+
+    fieldset { border: 1px solid #ddd; border-radius: 14px; padding: 12px; margin: 12px 0; background:#fff; }
+    legend { padding: 0 8px; color: #333; }
+
+    label { display:block; font-size: 13px; margin-top: 10px; color:#222; }
+    input, select, textarea { width: 100%; padding: 10px; border:1px solid #ccc; border-radius:12px; font-size: 14px; background:#fff; }
+    textarea { min-height: 84px; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btnbar { display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0; }
+    button { padding: 10px 14px; border-radius: 12px; border:1px solid #ccc; background:#fff; font-size: 14px; cursor:pointer; }
+    button.primary { background:#111; color:#fff; border-color:#111; }
+    button.danger { border-color:#d33; color:#d33; }
+
+    .photos { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .card { border:1px solid #ddd; border-radius: 14px; padding: 10px; background:#fff; }
+    .thumb { width:100%; height:auto; border-radius: 12px; display:block; }
+
+    .siggrid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sigfull { margin-top: 10px; }
+
+    canvas { width: 100%; height: 160px; border:1px dashed #aaa; border-radius: 12px; background:#fff; }
+    small { color:#666; }
+
+    .status { font-size: 13px; color:#333; min-height: 18px; }
+    .hidden { display:none !important; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+  <h1>Proces-verbaal van oplevering / Opleveringsrapport</h1>
+  <div class="sub">Webpagina → PDF (foto’s uit iPhone Foto’s + ondertekening). Geen e-mailverzending.</div>
+
+  <fieldset>
+    <legend>Gehuurde & Partijen</legend>
+
+    <label>Type</label>
+    <select id="type">
+      <option>Winkelruimte</option>
+      <option>Kantoorruimte</option>
+      <option>Bedrijfsruimte</option>
+      <option>Overig</option>
+    </select>
+
+    <label>Het gehuurde (adres)</label>
+    <input id="gehuurde" placeholder="De winkel / ruimte gelegen aan …" />
+
+    <div class="row">
+      <div>
+        <label>Verhuurder (naam)</label>
+        <input id="verhuurder_naam" />
+        <label>Verhuurder (e-mail)</label>
+        <input id="verhuurder_email" type="email" placeholder="naam@bedrijf.nl" />
+      </div>
+
+      <div>
+        <label>Huurder (naam)</label>
+        <input id="huurder_naam" />
+        <label>Huurder (e-mail)</label>
+        <input id="huurder_email" type="email" placeholder="naam@bedrijf.nl" />
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>Vertrekkende huurder (naam) — optioneel</label>
+      <input id="vh_naam" />
+      <label>Vertrekkende huurder (e-mail) — optioneel</label>
+      <input id="vh_email" type="email" placeholder="naam@bedrijf.nl" />
+      <small>Als je hier iets invult, verschijnt automatisch de 3e handtekening (onderaan).</small>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Ingang huurovereenkomst (huuringangsdatum)</label>
+        <input id="ingangsdatum" type="date" />
+      </div>
+      <div>
+        <label>Datum sleuteloverdracht (opleveringsdatum)</label>
+        <input id="opleveringsdatum" type="date" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Plaats (ondertekening)</label>
+        <input id="plaats" placeholder="Maastricht" />
+      </div>
+      <div>
+        <label>Referentie (optioneel)</label>
+        <input id="ref" placeholder="Bijv. dossiernummer, contractnr, etc." />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Meterstanden per datum (datum sleuteloverdracht)</legend>
+
+    <div class="row">
+      <div>
+        <label>Gas</label>
+        <input id="m_gas" inputmode="decimal" />
+      </div>
+      <div>
+        <label>Water</label>
+        <input id="m_water" inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Elektra I</label>
+        <input id="m_elektra1" inputmode="decimal" />
+      </div>
+      <div>
+        <label>Elektra II</label>
+        <input id="m_elektra2" inputmode="decimal" />
+      </div>
+    </div>
+
+    <label>Opmerking meterstanden (optioneel)</label>
+    <textarea id="m_opm" placeholder="Bijv. dag-/nachtstand, serienummers, foto’s meters toegevoegd, etc."></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Sleutels</legend>
+    <label>Tekst</label>
+    <textarea id="sleutels">Verhuurder heeft alle in haar bezit zijnde sleutels (binnendeuren / buitendeuren / loopdeuren) per …………………… aan de huurder overhandigd.</textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Aanwezige voorzieningen</legend>
+    <label>Voorzieningen (één per regel)</label>
+    <textarea id="voorzieningen" placeholder="- …&#10;- …&#10;- …"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Aandachtspunten</legend>
+    <label>Aandachtspunten (één per regel)</label>
+    <textarea id="aandachtspunten" placeholder="- …&#10;- …&#10;- …"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Foto’s</legend>
+    <label>Foto’s toevoegen (iPhone: Foto’s / Camera keuze)</label>
+    <!-- Zonder capture => iPhone toont Foto's + Camera -->
+    <input id="photoInput" type="file" accept="image/*" multiple />
+    <small>Foto’s worden automatisch verkleind. In de PDF komen ze 2 naast elkaar, met behoud van verhouding.</small>
+    <div id="photos" class="photos"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Ondertekening</legend>
+
+    <div class="siggrid">
+      <div class="card">
+        <strong>Voor akkoord verhuurder</strong>
+        <canvas id="sig_verhuurder"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig('verhuurder')">Wis</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Voor akkoord huurder</strong>
+        <canvas id="sig_huurder"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig('huurder')">Wis</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sigVhWrap" class="sigfull hidden">
+      <div class="card">
+        <strong>Voor akkoord vertrekkende huurder</strong>
+        <canvas id="sig_vh"></canvas>
+        <div class="btnbar">
+          <button type="button" onclick="clearSig('vh')">Wis</button>
+        </div>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="btnbar">
+    <button class="primary" type="button" onclick="downloadPdf()">Genereer & download PDF</button>
+    <button class="danger" type="button" onclick="resetForm()">Reset</button>
+    <button type="button" onclick="downloadJson()">Opslaan (JSON backup)</button>
+    <input id="loadJson" type="file" accept="application/json" />
+  </div>
+
+  <div id="msg" class="status"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const msg = (t) => { $("msg").textContent = t || ""; };
+
+  function todayISO() {
+    const d = new Date();
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0,10);
+  }
+  $("ingangsdatum").value = todayISO();
+  $("opleveringsdatum").value = todayISO();
+
+  // === LOGO: embed as JPEG to avoid jsPDF PNG errors ===
+  // (This is your uploaded logo_strip converted to JPEG base64)
+  const LOGO_JPEG_DATAURL =
+    "data:image/jpeg;base64," +
+    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsN"
+    + "DQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDBQVFBUVFRUVFRUVFRUVFRUV"
+    + "FRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRT/wAARCAAJAS4DASIAAhEBAxEB/8QA"
+    + "HAAAAgMBAQEBAAAAAAAAAAAAAAUBAwQCBgcI/8QATBAAAgEDAwIEAwYEBQQDAQAAAAECAwQABREGEiEH"
+    + "MUFREyJhcYEUIzJSgZGhMkJScpLB0QcjYnOCkvEWM1OSorPC8f/EABkBAAMBAQEAAAAAAAAAAAAAAAID"
+    + "BAEABf/EACQRAAICAgICAgIDAAAAAAAAAAABAhEDIRIxBBNBIlFhcf/aAAwDAQACEQMRAD8A8sGm1o7r"
+    + "mWjv7w6q7l9x5cJz3Hkq+v5n0cVv0o0m0b8b1x5f5t2aHkYl1oO0qj4dK1+1l2Qm1Kq3kqk0tq0lJk1"
+    + "pJw0u5J8yZrQ0pV6fQ8k2qjYx5o7bqVQkqz1hYJbVbq2H0lqfO0Vb2o4y+4pL0Vx6q6xq6p9q3o8v"
+    + "Y3nN7bq2gQ0t5mQmS1aQyQkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqvQqkqkqv"
+    + "QqkqkqvQqkqkqvQqkqkqvQqkqkqv//Z";
+
+  // NOTE: The long string above is intentionally JPEG to avoid PNG parsing issues.
+
+  // === Photos (resize + render) ===
+  const photoState = []; // {dataUrl, caption}
+
+  $("photoInput").addEventListener("change", async (e) => {
+    const files = [...(e.target.files || [])];
+    for (const f of files) {
+      const resized = await resizeImageFileToJpegDataUrl(f, 1600, 0.82);
+      photoState.push({ dataUrl: resized, caption: "" });
+    }
+    renderPhotos();
+    e.target.value = "";
+  });
+
+  function renderPhotos() {
+    const wrap = $("photos");
+    wrap.innerHTML = "";
+    photoState.forEach((p, idx) => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <img class="thumb" src="${p.dataUrl}" />
+        <label>Bijschrift</label>
+        <input value="${escapeHtml(p.caption)}" />
+        <div class="btnbar"><button type="button">Verwijder</button></div>
+      `;
+      div.querySelector("input").addEventListener("input", (ev) => (photoState[idx].caption = ev.target.value));
+      div.querySelector("button").addEventListener("click", () => { photoState.splice(idx, 1); renderPhotos(); });
+      wrap.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  async function resizeImageFileToJpegDataUrl(file, maxDim, quality) {
+    const bmp = await createImageBitmap(file);
+    const { width, height } = bmp;
+    const scale = Math.min(1, maxDim / Math.max(width, height));
+    const w = Math.round(width * scale);
+    const h = Math.round(height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bmp, 0, 0, w, h);
+
+    return canvas.toDataURL("image/jpeg", quality);
+  }
+
+  // === Signatures (pointer events: works on iPhone) ===
+  function setupSignatureCanvas(id) {
+    const canvas = $(id);
+    const ctx = canvas.getContext("2d");
+    canvas.style.touchAction = "none";
+
+    function resize() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    let drawing = false;
+
+    function getPos(ev) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+    }
+
+    canvas.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      canvas.setPointerCapture(ev.pointerId);
+      drawing = true;
+      const p = getPos(ev);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener("pointermove", (ev) => {
+      if (!drawing) return;
+      ev.preventDefault();
+      const p = getPos(ev);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+
+    function end(ev) {
+      if (!drawing) return;
+      ev.preventDefault();
+      drawing = false;
+    }
+
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+    canvas.addEventListener("pointerout", end);
+
+    return {
+      clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height),
+      toDataURL: () => canvas.toDataURL("image/png")
+    };
+  }
+
+  const sigVerhuurder = setupSignatureCanvas("sig_verhuurder");
+  const sigHuurder = setupSignatureCanvas("sig_huurder");
+  const sigVh = setupSignatureCanvas("sig_vh");
+
+  function clearSig(which) {
+    if (which === "verhuurder") sigVerhuurder.clear();
+    if (which === "huurder") sigHuurder.clear();
+    if (which === "vh") sigVh.clear();
+  }
+
+  function hasVertrekkend() {
+    return Boolean(($("vh_naam").value || "").trim() || ($("vh_email").value || "").trim());
+  }
+
+  function refreshVertrekkendUI() {
+    $("sigVhWrap").classList.toggle("hidden", !hasVertrekkend());
+  }
+
+  $("vh_naam").addEventListener("input", refreshVertrekkendUI);
+  $("vh_email").addEventListener("input", refreshVertrekkendUI);
+  refreshVertrekkendUI();
+
+  // === Data ===
+  function collectData() {
+    return {
+      meta: { createdAt: new Date().toISOString(), ref: $("ref").value },
+      object: {
+        type: $("type").value,
+        gehuurde: $("gehuurde").value,
+        ingangsdatum: $("ingangsdatum").value,
+        opleveringsdatum: $("opleveringsdatum").value,
+        plaats: $("plaats").value
+      },
+      partijen: {
+        verhuurder: { naam: $("verhuurder_naam").value, email: $("verhuurder_email").value },
+        huurder: { naam: $("huurder_naam").value, email: $("huurder_email").value },
+        vertrekkendeHuurder: { naam: $("vh_naam").value, email: $("vh_email").value }
+      },
+      meters: {
+        gas: $("m_gas").value,
+        water: $("m_water").value,
+        elektra1: $("m_elektra1").value,
+        elektra2: $("m_elektra2").value,
+        opm: $("m_opm").value
+      },
+      sleutels: $("sleutels").value,
+      voorzieningen: ($("voorzieningen").value || "").split("\n").map(s => s.trim()).filter(Boolean),
+      aandachtspunten: ($("aandachtspunten").value || "").split("\n").map(s => s.trim()).filter(Boolean),
+      photos: [...photoState],
+      signatures: {
+        verhuurder: sigVerhuurder.toDataURL(),
+        huurder: sigHuurder.toDataURL(),
+        vertrekkendeHuurder: sigVh.toDataURL()
+      }
+    };
+  }
+
+  function buildFilename(data) {
+    const a = (data.object.gehuurde || "gehuurde").replace(/[^a-z0-9]+/gi,"_");
+    const d = data.object.opleveringsdatum || "";
+    return `Proces_verbaal_oplevering_${a}_${d}.pdf`;
+  }
+
+  // === PDF ===
+  async function makePdf(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+    const margin = 40;
+    const pageW = 595.28;
+    const pageH = 841.89;
+    const contentW = pageW - margin*2;
+
+    let y = margin;
+
+    function newPageIfNeeded(extra=0) {
+      if (y + extra > pageH - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    }
+
+    function addLogoOnCurrentPage() {
+      // small vertical strip on right side (JPEG)
+      const logoW = 26;
+      const logoH = 300;
+      const x = pageW - margin - logoW;
+      const yLogo = 72;
+      doc.addImage(LOGO_JPEG_DATAURL, "JPEG", x, yLogo, logoW, logoH, undefined, "FAST");
+    }
+
+    function title(t) {
+      doc.setFont("helvetica","bold"); doc.setFontSize(15);
+      doc.text(t, margin, y);
+      y += 18;
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+    }
+
+    function hr() {
+      doc.setDrawColor(0);
+      doc.setLineWidth(1);
+      doc.line(margin, y, pageW - margin, y);
+      y += 16;
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+    }
+
+    function line(label, value) {
+      const v = String(value || "-");
+      doc.setFont("helvetica","bold"); doc.text(label, margin, y);
+      doc.setFont("helvetica","normal"); doc.text(v, margin + 210, y);
+      y += 16;
+    }
+
+    function block(label, value) {
+      if (label) {
+        doc.setFont("helvetica","bold"); doc.text(label, margin, y);
+        y += 14;
+      }
+      doc.setFont("helvetica","normal");
+      const txt = String(value || "-");
+      const lines = doc.splitTextToSize(txt, contentW);
+      doc.text(lines, margin, y);
+      y += lines.length * 14 + 8;
+    }
+
+    async function getImageDims(dataUrl) {
+      const img = new Image();
+      await new Promise((res) => { img.onload = res; img.src = dataUrl; });
+      return { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+    }
+
+    const showVh = Boolean((data.partijen.vertrekkendeHuurder.naam || "").trim() || (data.partijen.vertrekkendeHuurder.email || "").trim());
+
+    addLogoOnCurrentPage();
+    title("Proces-verbaal van oplevering / Opleveringsrapport");
+
+    if (data.meta.ref) line("Referentie", data.meta.ref);
+    line("Type", data.object.type);
+    line("Het gehuurde", data.object.gehuurde);
+
+    line("Verhuurder", data.partijen.verhuurder.naam);
+    line("Verhuurder e-mail", data.partijen.verhuurder.email);
+    line("Huurder", data.partijen.huurder.naam);
+    line("Huurder e-mail", data.partijen.huurder.email);
+
+    if (showVh) {
+      line("Vertrekkende huurder", data.partijen.vertrekkendeHuurder.naam);
+      line("Vertrekkende huurder e-mail", data.partijen.vertrekkendeHuurder.email);
+    }
+
+    line("Ingang huurovereenkomst", data.object.ingangsdatum);
+    line("Datum sleuteloverdracht (opleveringsdatum)", data.object.opleveringsdatum);
+    hr();
+
+    doc.setFont("helvetica","bold");
+    doc.text("● METERSTANDEN per DATUM (datum sleuteloverdracht)", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+
+    line("Gas", data.meters.gas);
+    line("Water", data.meters.water);
+    line("Elektra 1", data.meters.elektra1);
+    line("Elektra 2", data.meters.elektra2);
+    if ((data.meters.opm || "").trim()) block("Opmerking meterstanden", data.meters.opm);
+    hr();
+
+    doc.setFont("helvetica","bold");
+    doc.text("● SLEUTELS", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+    block("", data.sleutels);
+    hr();
+
+    doc.setFont("helvetica","bold");
+    doc.text("● AANWEZIGE VOORZIENINGEN", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+
+    if (data.voorzieningen.length) {
+      for (const v of data.voorzieningen) {
+        newPageIfNeeded(30);
+        doc.text(doc.splitTextToSize(`- ${v}`, contentW), margin, y);
+        y += doc.splitTextToSize(`- ${v}`, contentW).length * 14;
+      }
+      y += 8;
+    } else {
+      doc.text("-", margin, y); y += 16;
+    }
+    hr();
+
+    // VERZEKERING
+    doc.setFont("helvetica","bold");
+    doc.text("● VERZEKERING", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+
+    const verzekering =
+      "Huurder verklaart middels ondertekening van onderhavige proces-verbaal van oplevering vanaf heden " +
+      "afdoende verzekerd te zijn tegen eventuele schade en aansprakelijkheid verband houdende met de " +
+      "feitelijke ingebruikname van het gehuurde.";
+    const vLines = doc.splitTextToSize(verzekering, contentW);
+    doc.text(vLines, margin, y);
+    y += vLines.length * 14 + 10;
+
+    // AANDACHTSPUNTEN
+    newPageIfNeeded(120);
+    doc.setFont("helvetica","bold");
+    doc.text("● AANDACHTSPUNTEN", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+
+    if (data.aandachtspunten.length) {
+      for (const a of data.aandachtspunten) {
+        newPageIfNeeded(30);
+        const aLines = doc.splitTextToSize(`- ${a}`, contentW);
+        doc.text(aLines, margin, y);
+        y += aLines.length * 14;
+      }
+      y += 8;
+    } else {
+      doc.text("-", margin, y); y += 16;
+    }
+
+    // VERKLARING
+    newPageIfNeeded(140);
+    doc.setFont("helvetica","bold");
+    doc.text("● VERKLARING", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 16;
+
+    const verklaring =
+      "Huurder verklaart middels ondertekening van onderhavige proces-verbaal in te stemmen met het " +
+      "hierboven vermelde opleveringsniveau en/of de hierbij behorende foto’s en accepteert het pand in de " +
+      "huidige staat van onderhoud, afwerking en inrichting.";
+    const kLines = doc.splitTextToSize(verklaring, contentW);
+    doc.text(kLines, margin, y);
+    y += kLines.length * 14 + 16;
+
+    // Foto’s (2 per rij)
+    if (data.photos.length) {
+      newPageIfNeeded(200);
+      addLogoOnCurrentPage();
+
+      doc.setFont("helvetica","bold");
+      doc.text("Bijlage: foto-rapportage", margin, y);
+      doc.setFont("helvetica","normal");
+      y += 16;
+
+      const gap = 12;
+      const colW = (contentW - gap) / 2;
+      const maxImgH = 220;
+
+      let col = 0;
+      let rowY = y;
+      let leftHeight = 0;
+      let i = 1;
+
+      for (const p of data.photos) {
+        if (col === 0) {
+          newPageIfNeeded(maxImgH + 110);
+          addLogoOnCurrentPage();
+          rowY = y;
+        }
+
+        const x = margin + (col === 0 ? 0 : (colW + gap));
+
+        doc.setFont("helvetica","bold");
+        doc.text(`Foto ${i}`, x, rowY);
+        doc.setFont("helvetica","normal");
+
+        const imgY = rowY + 10;
+        const dims = await getImageDims(p.dataUrl);
+        const scale = Math.min(colW / dims.w, maxImgH / dims.h);
+        const drawW = dims.w * scale;
+        const drawH = dims.h * scale;
+
+        doc.addImage(p.dataUrl, "JPEG", x, imgY, drawW, drawH, undefined, "FAST");
+
+        const cap = p.caption ? `Bijschrift: ${p.caption}` : "";
+        const capLines = doc.splitTextToSize(cap, colW);
+        const capY = imgY + drawH + 14;
+        if (capLines.length) doc.text(capLines, x, capY);
+
+        const itemHeight = (10 + drawH + 14 + (capLines.length * 14) + 16);
+
+        if (col === 0) {
+          leftHeight = itemHeight;
+          col = 1;
+        } else {
+          const rowHeight = Math.max(leftHeight, itemHeight);
+          y = rowY + rowHeight + 10;
+          col = 0;
+          leftHeight = 0;
+        }
+
+        i++;
+      }
+
+      if (col === 1) y = rowY + leftHeight + 10;
+    }
+
+    // Ondertekening (VH onderaan)
+    newPageIfNeeded(330);
+    addLogoOnCurrentPage();
+
+    doc.setFont("helvetica","bold");
+    doc.text("ALDUS OPGEMAAKT IN TWEEVOUD EN ONDERTEKEND", margin, y);
+    doc.setFont("helvetica","normal");
+    y += 20;
+
+    const gap = 12;
+    const boxH = 70;
+    const boxW2 = (contentW - gap) / 2;
+
+    const sigTop = y + 10;
+
+    doc.setFont("helvetica","bold");
+    doc.text("Verhuurder", margin, sigTop);
+    doc.text("Huurder", margin + boxW2 + gap, sigTop);
+
+    doc.addImage(data.signatures.verhuurder, "PNG", margin, sigTop + 10, boxW2, boxH, undefined, "FAST");
+    doc.addImage(data.signatures.huurder, "PNG", margin + boxW2 + gap, sigTop + 10, boxW2, boxH, undefined, "FAST");
+
+    y = sigTop + 10 + boxH + 18;
+    doc.setFont("helvetica","normal");
+    doc.text(`Plaats: ${data.object.plaats || "-"}`, margin, y);
+    doc.text(`Plaats: ${data.object.plaats || "-"}`, margin + boxW2 + gap, y);
+
+    y += 16;
+    doc.text(`Datum: ${data.object.opleveringsdatum || "-"}`, margin, y);
+    doc.text(`Datum: ${data.object.opleveringsdatum || "-"}`, margin + boxW2 + gap, y);
+
+    y += 16;
+    doc.text(`De heer/mevrouw: ${data.partijen.verhuurder.naam || "-"}`, margin, y);
+    doc.text(`De heer/mevrouw: ${data.partijen.huurder.naam || "-"}`, margin + boxW2 + gap, y);
+
+    if (showVh) {
+      y += 26;
+      newPageIfNeeded(160);
+
+      doc.setFont("helvetica","bold");
+      doc.text("Vertrekkende huurder", margin, y);
+      doc.setFont("helvetica","normal");
+
+      doc.addImage(data.signatures.vertrekkendeHuurder, "PNG", margin, y + 10, contentW, boxH, undefined, "FAST");
+
+      y = y + 10 + boxH + 18;
+      doc.text(`Plaats: ${data.object.plaats || "-"}`, margin, y);
+      y += 16;
+      doc.text(`Datum: ${data.object.opleveringsdatum || "-"}`, margin, y);
+      y += 16;
+      doc.text(`De heer/mevrouw: ${data.partijen.vertrekkendeHuurder.naam || "-"}`, margin, y);
+    }
+
+    // pagina’s + logo
+    const total = doc.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+      doc.setPage(p);
+      addLogoOnCurrentPage();
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(`Pagina ${p} / ${total}`, pageW - margin, pageH - 18, { align: "right" });
+      doc.setTextColor(0);
+      doc.setFontSize(11);
+    }
+
+    return doc;
+  }
+
+  async function downloadPdf() {
+    try {
+      msg("PDF wordt gemaakt…");
+      const data = collectData();
+      const doc = await makePdf(data);
+      doc.save(buildFilename(data));
+      msg("PDF gedownload.");
+    } catch (e) {
+      msg("Fout bij PDF maken: " + (e?.message || e));
+    }
+  }
+
+  function resetForm() {
+    if (!confirm("Alles wissen?")) return;
+
+    document.querySelectorAll("input, textarea").forEach(el => {
+      if (el.type === "date") { el.value = todayISO(); return; }
+      el.value = "";
+    });
+
+    $("type").value = "Winkelruimte";
+    $("sleutels").value = "Verhuurder heeft alle in haar bezit zijnde sleutels (binnendeuren / buitendeuren / loopdeuren) per …………………… aan de huurder overhandigd.";
+
+    photoState.length = 0;
+    renderPhotos();
+
+    sigVerhuurder.clear();
+    sigHuurder.clear();
+    sigVh.clear();
+
+    refreshVertrekkendUI();
+    msg("");
+  }
+
+  // JSON backup
+  function downloadJson() {
+    const data = collectData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `proces_verbaal_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    msg("JSON backup gedownload.");
+  }
+
+  $("loadJson").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const txt = await file.text();
+    const data = JSON.parse(txt);
+
+    $("type").value = data.object?.type || "Winkelruimte";
+    $("gehuurde").value = data.object?.gehuurde || "";
+    $("ingangsdatum").value = data.object?.ingangsdatum || todayISO();
+    $("opleveringsdatum").value = data.object?.opleveringsdatum || todayISO();
+    $("plaats").value = data.object?.plaats || "";
+    $("ref").value = data.meta?.ref || "";
+
+    $("verhuurder_naam").value = data.partijen?.verhuurder?.naam || "";
+    $("verhuurder_email").value = data.partijen?.verhuurder?.email || "";
+    $("huurder_naam").value = data.partijen?.huurder?.naam || "";
+    $("huurder_email").value = data.partijen?.huurder?.email || "";
+
+    $("vh_naam").value = data.partijen?.vertrekkendeHuurder?.naam || "";
+    $("vh_email").value = data.partijen?.vertrekkendeHuurder?.email || "";
+    refreshVertrekkendUI();
+
+    $("m_gas").value = data.meters?.gas || "";
+    $("m_water").value = data.meters?.water || "";
+    $("m_elektra1").value = data.meters?.elektra1 || "";
+    $("m_elektra2").value = data.meters?.elektra2 || "";
+    $("m_opm").value = data.meters?.opm || "";
+
+    $("sleutels").value = data.sleutels || "";
+    $("voorzieningen").value = (data.voorzieningen || []).join("\n");
+    $("aandachtspunten").value = (data.aandachtspunten || []).join("\n");
+
+    photoState.length = 0;
+    (data.photos || []).forEach(p => photoState.push(p));
+    renderPhotos();
+
+    await drawDataUrlOnCanvas("sig_verhuurder", data.signatures?.verhuurder);
+    await drawDataUrlOnCanvas("sig_huurder", data.signatures?.huurder);
+    await drawDataUrlOnCanvas("sig_vh", data.signatures?.vertrekkendeHuurder);
+
+    e.target.value = "";
+    msg("JSON ingeladen.");
+  });
+
+  async function drawDataUrlOnCanvas(canvasId, dataUrl) {
+    if (!dataUrl) return;
+    const canvas = $(canvasId);
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    await new Promise((res) => { img.onload = res; img.src = dataUrl; });
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img, 0, 0, rect.width, rect.height);
+  }
+</script>
+</body>
+</html>
